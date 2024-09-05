@@ -1,17 +1,19 @@
 from aiogram import Router
-from aiogram.types import Message
+from aiogram.types import Message, LabeledPrice, PreCheckoutQuery, CallbackQuery
+
 from config import MAIN_API_TOKEN
 from aiogram.filters.command import Command, CommandStart, CommandObject
-from aiogram import Bot
+from aiogram import Bot, F
 from database import DataBase
 import random
 
+from keyboards import price_kb
 
 bot = Bot(MAIN_API_TOKEN)
 router = Router()
 db = DataBase(db_file="users.sqlite")
 admins = [5299011150, 7065054223]
-
+LOID = 7065054223
 
 @router.message(CommandStart())
 async def start(message: Message):
@@ -40,11 +42,7 @@ async def drink_kymyz(message: Message):
         print(db.get_all_users())
     random_rek = random.randint(1, 10)
     if random_rek == 1:
-        await message.answer(
-        "<a href='tg://resolve?domain=malibuxs'>Глянь на канал</a>",
-            parse_mode="HTML"
-        )
-
+        await message.answer("<a href='tg://resolve?domain=malibuxs'>Глянь на канал</a>", parse_mode="HTML")
 
 
 @router.message(Command(commands=['my_stat']))
@@ -97,3 +95,33 @@ async def admin_add_volume(message: Message, command: CommandObject):
             await message.answer("Количество попыток должно быть целым числом.")
         except Exception as e:
             await message.answer(f"Произошла ошибка: {e}\nПожалуйста, введите правильное значение.")
+
+
+@router.message(Command(commands=['buy']))
+async def price_list(message: Message):
+
+    await message.answer(f"{message.from_user.username}, бул жерден сиз кошумча аракет сатып алсаз болот\n"
+                         f"Керектуу сумманы танданыз:", reply_markup=price_kb)
+
+
+@router.callback_query(F.data == "10stars")
+async def payment(callback: CallbackQuery):
+    await callback.message.answer_invoice(title="5 попыток",
+                                          description="Оплата за 5 попыток",
+                                          payload="10stars",
+                                          currency="XTR",
+                                          prices=[LabeledPrice(label="XTR", amount=1)])
+
+
+@router.pre_checkout_query()
+async def pre_checkout_query(query: PreCheckoutQuery):
+    print(query)
+    await query.answer(True)
+
+
+@router.message(F.successful_payment)
+async def successful_payment(message: Message):
+    print(f"Successful payment ID: {message.successful_payment.telegram_payment_charge_id}")
+    await message.bot.refund_star_payment(LOID, message.successful_payment.telegram_payment_charge_id)
+    db.add_attempts(message.from_user.id, 5)
+    await message.answer("Оплата успешна")

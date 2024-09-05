@@ -136,7 +136,7 @@ class DataBase:
             if attempts == 0 and last_attempt_time is not None:
                 last_time = datetime.datetime.fromisoformat(last_attempt_time)
                 time_elapsed = (datetime.datetime.now() - last_time).total_seconds()
-                time_left = max(20 - time_elapsed, 0)
+                time_left = max(1800 - time_elapsed, 0)
 
                 if time_left == 0:
                     # Восстановление 1 попытки и сброс таймера
