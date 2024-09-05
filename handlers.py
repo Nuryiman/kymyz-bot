@@ -33,10 +33,18 @@ async def drink_kymyz(message: Message):
         db.add_volume(user_id=user_id, volume=random_volume)
         volume = db.get_volume(user_id=user_id)
         volume = round(volume, 1)
-        await message.answer(f"@{user_name}, сиз {random_volume} литр кымыз ичтиниз\n Сиз ушу менен биригип {volume} ичтиниз")
+        await message.answer(f"@{user_name}, сиз {random_volume} литр кымыз ичтиниз\n"
+                             f"Сиз ушу менен биригип {volume} ичтиниз")
     else:
         await message.answer(f"@{user_name} Сизде аракет калбады\n Кийинки аракеттин жаралуусуна {get_time_attempts} калды")
         print(db.get_all_users())
+    random_rek = random.randint(1, 10)
+    if random_rek == 1:
+        await message.answer(
+        "<a href='tg://resolve?domain=malibuxs'>Глянь на канал</a>",
+            parse_mode="HTML"
+        )
+
 
 
 @router.message(Command(commands=['my_stat']))
