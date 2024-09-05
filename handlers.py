@@ -15,7 +15,7 @@ admins = [5299011150, 7065054223]
 
 @router.message(CommandStart())
 async def start(message: Message):
-    user_id = message.chat.id
+    user_id = message.from_user.id
     user_name = message.from_user.username
     db.add_user(user_id=user_id, user_name=user_name)
     await message.answer('Hello')
@@ -30,12 +30,13 @@ async def drink_kymyz(message: Message):
     if get_time_attempts == "Попытки уже доступны.":
         random_number = random.uniform(0, 5)
         random_volume = round(random_number, 1)
-        added_volume = db.add_volume(user_id=user_id, volume=random_volume)
+        db.add_volume(user_id=user_id, volume=random_volume)
         volume = db.get_volume(user_id=user_id)
         volume = round(volume, 1)
         await message.answer(f"@{user_name}, сиз {random_volume} литр кымыз ичтиниз\n Сиз ушу менен биригип {volume} ичтиниз")
     else:
         await message.answer(f"@{user_name} Сизде аракет калбады\n Кийинки аракеттин жаралуусуна {get_time_attempts} калды")
+        print(db.get_all_users())
 
 
 @router.message(Command(commands=['my_stat']))
@@ -52,13 +53,39 @@ async def group_statistic(message: Message):
     pass
 
 
-@router.message(Command(commands="add_volume"))
+@router.message(Command(commands="add"))
 async def admin_add_volume(message: Message, command: CommandObject):
     if message.from_user.id in admins:
-        args = command.args
-        args_list = args.split(" ")
-        user_name = args_list[0]
-        volume = args_list[1]
+        try:
+            # Проверка, что аргументы предоставлены
+            args = command.args
+            if not args:
+                await message.answer("Пожалуйста, укажите имя пользователя и количество попыток.")
+                return
 
-        db.add_volume(user_id=db.get_user(user_name=user_name[1:-1]), volume=volume)
-        await message.answer(f"Пользователю {user_name} добавлен {volume} попыток")
+            args_list = args.split(" ")
+            if len(args_list) < 2:
+                await message.answer("Неверное количество аргументов. Используйте: /add <username> <attempts>")
+                return
+
+            user_name = args_list[0].lstrip('@')
+            value = args_list[1]
+
+            # Проверка, что количество попыток - целое число
+            int_value = int(value)
+
+            # Получение информации о пользователе
+            db_user = db.get_user(user_name=user_name)
+            if db_user is None:
+                await message.answer(f"Пользователь с именем @{user_name} не найден.")
+                return
+
+            db_user_id = db_user[0]  # Извлечение user_id из кортежа
+
+            # Добавление попыток пользователю
+            db.add_attempts(user_id=db_user_id, attempts=int_value)
+            await message.answer(f"Пользователю @{user_name} добавлено {int_value} попыток.")
+        except ValueError:
+            await message.answer("Количество попыток должно быть целым числом.")
+        except Exception as e:
+            await message.answer(f"Произошла ошибка: {e}\nПожалуйста, введите правильное значение.")

@@ -13,7 +13,6 @@ class DataBase:
             CREATE TABLE IF NOT EXISTS users (
                 user_id TEXT UNIQUE,  
                 user_name TEXT UNIQUE,  
-                count INTEGER DEFAULT 0,
                 volume REAL DEFAULT 0,
                 attempts INTEGER DEFAULT 3,
                 last_attempt_time TEXT
@@ -26,8 +25,8 @@ class DataBase:
         try:
             # Добавление нового пользователя с начальным счетчиком 0 и тремя попытками
             self.cursor.execute(
-                'INSERT INTO users (user_id, user_name, count, volume, attempts, last_attempt_time) VALUES (?, ?, ?, ?, ?, ?)',
-                (user_id, user_name, 0, 0, 3, datetime.datetime.now().isoformat())
+                'INSERT INTO users (user_id, user_name, volume, attempts, last_attempt_time) VALUES (?, ?, ?, ?, ?)',
+                (user_id, user_name, 0, 3, None)  # Начальное время попытки None, так как попытки есть
             )
             self.connection.commit()
         except sqlite3.IntegrityError:
@@ -41,22 +40,13 @@ class DataBase:
         return result.fetchone() is not None
 
     def get_user(self, user_id: int = None, user_name: str = None):
-        """
-        Получение информации о пользователе по user_id или user_name.
-
-        :param user_id: ID пользователя.
-        :param user_name: Имя пользователя.
-        :return: Кортеж (user_id, user_name, count) или None, если пользователь не найден.
-        """
         if user_id is not None:
-            # Получение информации по user_id
             result = self.cursor.execute(
-                'SELECT user_id, user_name, count FROM users WHERE user_id = ?', (user_id,)
+                'SELECT user_id, user_name FROM users WHERE user_id = ?', (user_id,)
             )
         elif user_name is not None:
-            # Получение информации по user_name
             result = self.cursor.execute(
-                'SELECT user_id, user_name, count FROM users WHERE user_name = ?', (user_name,)
+                'SELECT user_id, user_name FROM users WHERE user_name = ?', (user_name,)
             )
         else:
             raise ValueError("Необходимо указать user_id или user_name.")
@@ -73,14 +63,25 @@ class DataBase:
 
         if result:
             attempts, last_attempt_time = result
-            if attempts == 0:
-                # Проверка, прошло ли больше часа с последней попытки
+
+            # Если попыток 0 и таймер еще не установлен
+            if attempts == 0 and last_attempt_time is None:
+                # Устанавливаем текущее время как время последней попытки
+                self.cursor.execute(
+                    'UPDATE users SET last_attempt_time = ? WHERE user_id = ?',
+                    (datetime.datetime.now().isoformat(), user_id)
+                )
+                self.connection.commit()
+                return False
+
+            # Если время последней попытки установлено и прошло более часа
+            if last_attempt_time is not None:
                 last_time = datetime.datetime.fromisoformat(last_attempt_time)
                 if (datetime.datetime.now() - last_time).total_seconds() >= 3600:
-                    # Восстановить 1 попытку и обновить время последней попытки
+                    # Восстанавливаем одну попытку и сбрасываем таймер
                     self.cursor.execute(
-                        'UPDATE users SET attempts = 1, last_attempt_time = ? WHERE user_id = ?',
-                        (datetime.datetime.now().isoformat(), user_id)
+                        'UPDATE users SET attempts = 1, last_attempt_time = NULL WHERE user_id = ?',
+                        (user_id,)
                     )
                     self.connection.commit()
                     return True
@@ -108,9 +109,10 @@ class DataBase:
             return False
 
     def add_attempts(self, user_id, attempts: int = 1):
-        # Увеличение количества попыток для пользователя
+        # Увеличение количества попыток для пользователя и сброс таймера
         self.cursor.execute(
-            'UPDATE users SET attempts = attempts + ? WHERE user_id = ?', (attempts, user_id)
+            'UPDATE users SET attempts = attempts + ?, last_attempt_time = NULL WHERE user_id = ?',
+            (attempts, user_id)
         )
         self.connection.commit()
 
@@ -131,14 +133,25 @@ class DataBase:
 
         if result:
             attempts, last_attempt_time = result
-            if attempts == 0:
-                # Вычисляем разницу времени до следующей попытки
+            if attempts == 0 and last_attempt_time is not None:
                 last_time = datetime.datetime.fromisoformat(last_attempt_time)
                 time_elapsed = (datetime.datetime.now() - last_time).total_seconds()
-                time_left = max(3600 - time_elapsed, 0)  # Время до следующей попытки в секундах
+                time_left = max(20 - time_elapsed, 0)
+
+                if time_left == 0:
+                    # Восстановление 1 попытки и сброс таймера
+                    self.cursor.execute(
+                        'UPDATE users SET attempts = 1, last_attempt_time = NULL WHERE user_id = ?',
+                        (user_id,)
+                    )
+                    self.connection.commit()
+                    return "Попытки уже доступны."
 
                 minutes, seconds = divmod(int(time_left), 60)
-                return f"{minutes} минут {seconds}"
+                if minutes == 0:
+                    return f"{seconds} секунд"
+                else:
+                    return f"{minutes} минут {seconds} секунд"
             else:
                 return "Попытки уже доступны."
         else:
@@ -146,3 +159,10 @@ class DataBase:
 
     def get_volume_statistic(self):
         pass
+
+    def get_all_users(self):
+        self.cursor.execute(
+            'SELECT * FROM users'
+        )
+        result = self.cursor.fetchall()
+        return result if result else None
