@@ -68,6 +68,13 @@ class DataBase:
         except sqlite3.IntegrityError:
             pass
 
+    def get_all_groups(self):
+        self.cursor.execute(
+            'SELECT group_id FROM groups'
+        )
+        result = self.cursor.fetchall()
+        return [row[0] for row in result] if result else []
+
     # Функция добавления пользователя в группу
     def add_user_to_group(self, user_id: int, group_id: int) -> None:
         try:

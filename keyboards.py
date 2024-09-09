@@ -25,3 +25,26 @@ stat_kb = InlineKeyboardMarkup(
         ]
     ]
 )
+
+bot_username = "emchek_bot"
+
+add_bot_kb = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Ботту группага кошуу", url=f'https://t.me/{bot_username}?startgroup=new')
+        ]
+    ]
+)
+
+# Создаем инлайн-кнопки
+rek_keyboard = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Отправить", callback_data="send_ad"),
+            InlineKeyboardButton(text="Заново", callback_data="retry_ad"),
+        ],
+        [
+            InlineKeyboardButton(text="не отправлять", callback_data="not_send")
+        ]
+    ]
+)
