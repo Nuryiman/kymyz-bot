@@ -49,6 +49,19 @@ class DataBase:
 
         self.connection.commit()
 
+        # Создание таблицы для рекламы
+        self.cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS admin_reklams (
+                title TEXT,
+                href TEXT,
+                inline_title TEXT
+            );
+            """
+        )
+
+        self.connection.commit()
+
     # Функция добавления пользователя
     def add_user(self, user_id: int, user_name: str) -> None:
         try:
@@ -317,3 +330,17 @@ class DataBase:
         timer_thread = threading.Thread(target=timer_task)
         timer_thread.daemon = True
         timer_thread.start()
+
+    def add_reklama(self, title, href, inline_title):
+        self.cursor.execute(
+            'INSERT INTO admin_reklams (title, href, inline_title) VALUES (?, ?, ?)',
+            (title, href, inline_title)
+        )
+        self.connection.commit()
+
+    def get_all_reklams(self):
+        self.cursor.execute(
+            'SELECT * FROM admin_reklams'
+        )
+        result = self.cursor.fetchall()
+        return result if result else None

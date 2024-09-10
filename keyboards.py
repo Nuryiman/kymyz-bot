@@ -92,3 +92,14 @@ cancel_to_users_top = InlineKeyboardMarkup(
         ]
     ]
 )
+
+
+def rek_kb(text: str, url: str):
+    markup = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text=text, url=url)
+            ]
+        ]
+    )
+    return markup
