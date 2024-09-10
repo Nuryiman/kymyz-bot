@@ -48,3 +48,47 @@ rek_keyboard = InlineKeyboardMarkup(
         ]
     ]
 )
+
+day_or_alltime_kb = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Бугунку топ", callback_data="users_day_top")
+        ],
+        [
+            InlineKeyboardButton(text="Бардык убакыт боюнча топ", callback_data="users_all_time_top")
+        ],
+        [
+            InlineKeyboardButton(text="Артка", callback_data="cancel")
+        ]
+    ]
+)
+
+day_or_alltime_group_kb = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Бугунку топ", callback_data="groups_day_top")
+        ],
+        [
+            InlineKeyboardButton(text="Бардык убакыт боюнча топ", callback_data="groups_all_time_top")
+        ],
+        [
+            InlineKeyboardButton(text="Артка", callback_data="cancel")
+        ]
+    ]
+)
+
+cancel_to_group_top = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Артка", callback_data="cancel_to_stat")
+        ]
+    ]
+)
+
+cancel_to_users_top = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Артка", callback_data="cancel_to_stat_group")
+        ]
+    ]
+)

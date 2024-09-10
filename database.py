@@ -1,5 +1,7 @@
 import sqlite3
 import datetime
+import time
+import threading
 
 
 class DataBase:
@@ -12,9 +14,10 @@ class DataBase:
         self.cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS users (
-                user_id TEXT UNIQUE,  
+                user_id INTEGER UNIQUE,  
                 user_name TEXT UNIQUE,  
                 volume REAL DEFAULT 0,
+                day_volume REAL DEFAULT 0,
                 attempts INTEGER DEFAULT 3,
                 last_attempt_time TEXT
             );
@@ -35,7 +38,7 @@ class DataBase:
         self.cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS user_groups (
-                user_id TEXT,
+                user_id INTEGER,
                 group_id INTEGER,
                 FOREIGN KEY (user_id) REFERENCES users (user_id),
                 FOREIGN KEY (group_id) REFERENCES groups (group_id),
@@ -50,8 +53,8 @@ class DataBase:
     def add_user(self, user_id: int, user_name: str) -> None:
         try:
             self.cursor.execute(
-                'INSERT INTO users (user_id, user_name, volume, attempts, last_attempt_time) VALUES (?, ?, ?, ?, ?)',
-                (user_id, user_name, 0, 3, None)
+                'INSERT INTO users (user_id, user_name, volume, day_volume, attempts, last_attempt_time) VALUES (?, ?, ?, ?, ?, ?)',
+                (user_id, user_name, 0, 0, 3, None)
             )
             self.connection.commit()
         except sqlite3.IntegrityError:
@@ -145,10 +148,37 @@ class DataBase:
         result = self.cursor.fetchall()
         return result if result else []
 
+    def get_global_day_top_users(self):
+        self.cursor.execute(
+            """
+            SELECT user_id, user_name, day_volume 
+            FROM users 
+            ORDER BY volume DESC 
+            LIMIT 10;
+            """
+        )
+        result = self.cursor.fetchall()
+        return result if result else []
+
     def get_top_groups(self):
         self.cursor.execute(
             """
             SELECT groups.group_id, groups.group_name, SUM(users.volume) AS total_volume
+            FROM users
+            JOIN user_groups ON users.user_id = user_groups.user_id
+            JOIN groups ON user_groups.group_id = groups.group_id
+            GROUP BY groups.group_id, groups.group_name
+            ORDER BY total_volume DESC
+            LIMIT 10;
+            """
+        )
+        result = self.cursor.fetchall()
+        return result if result else []
+
+    def get_day_top_groups(self):
+        self.cursor.execute(
+            """
+            SELECT groups.group_id, groups.group_name, SUM(users.day_volume) AS total_volume
             FROM users
             JOIN user_groups ON users.user_id = user_groups.user_id
             JOIN groups ON user_groups.group_id = groups.group_id
@@ -170,8 +200,9 @@ class DataBase:
 
         if attempts and attempts[0] > 0:
             self.cursor.execute(
-                'UPDATE users SET volume = volume + ?, attempts = attempts - 1, last_attempt_time = ? WHERE user_id = ?',
-                (round(volume, 1), datetime.datetime.now().isoformat(), user_id)
+                'UPDATE users SET volume = volume + ?, day_volume = day_volume + ?,'
+                ' attempts = attempts - 1, last_attempt_time = ? WHERE user_id = ?',
+                (round(volume, 1), round(volume, 1), datetime.datetime.now().isoformat(), user_id)
             )
             self.connection.commit()
             return True
@@ -261,3 +292,28 @@ class DataBase:
         )
         result = self.cursor.fetchall()
         return result if result else None
+
+    # Функция обнуления day_volume
+    def reset_day_volume(self):
+        """Сбрасывает колонку day_volume для всех пользователей."""
+        self.cursor.execute('UPDATE users SET day_volume = 0')
+        self.connection.commit()
+        print("Суточный объем сброшен для всех пользователей.")
+
+    # Запуск таймера для обнуления day_volume в 00:00
+    def start_reset_timer(self):
+        def timer_task():
+            while True:
+                now = datetime.datetime.now()
+                # Проверяем, если сейчас время 00:00
+                if now.hour == 0 and now.minute == 0:
+                    self.reset_day_volume()
+                    # Спим 60 секунд, чтобы избежать повторного срабатывания в ту же минуту
+                    time.sleep(60)
+                # Спим 30 секунд перед следующей проверкой
+                time.sleep(30)
+
+        # Создание и запуск потока таймера
+        timer_thread = threading.Thread(target=timer_task)
+        timer_thread.daemon = True
+        timer_thread.start()
