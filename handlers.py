@@ -32,20 +32,21 @@ class AdStates(StatesGroup):
 
 @router.message(F.new_chat_member)
 async def new_chat_member_handler(message: Message):
-    await message.answer(f"<a href='tg://resolve?domain={message.from_user.username}'>{message.from_user.first_name}</a>, Кымыздан ал🥛\n"
+    await message.answer(f"<a href='tg://openmessage?user_id={message.from_user.id}'>{message.from_user.first_name}</a>, Кымыздан ал🥛\n"
                          f"(/kymyz командасын жаз)", parse_mode="HTML")
-    db.add_group(group_id=message.chat.id, group_name=message.chat.first_name)
+    db.add_group(group_id=message.chat.id, group_username=message.chat.username, group_name=message.chat.title)
 
 
 @router.message(CommandStart())
 async def start(message: Message):
     user_id = message.from_user.id
     user_name = message.from_user.username
-    db.add_user(user_id=user_id, user_name=user_name)
+    first_name = message.from_user.first_name
+    db.add_user(user_id=user_id, user_name=user_name, first_name=first_name)
     await message.answer('Салам! Мен кымыз бот. Башка оюнчулар менен биригип кымыз ичип жарыш.\n🥛🥛🥛\n\n'
                          'Кымыз ичуу учун /kymyz командасын жаз\n\n'
-                         'Жардам - /help')
-    db.add_group(group_id=message.chat.id, group_name=message.chat.title)
+                         'Жардам - /help', reply_markup=add_bot_kb)
+    db.add_group(group_id=message.chat.id, group_username=message.chat.username, group_name=message.chat.title)
 
 
 @router.message(Command(commands=['kymyz']))
@@ -59,7 +60,8 @@ async def drink_kymyz(message: Message):
     else:
         user_id = message.from_user.id
         user_name = message.from_user.username
-        db.add_user(user_id=user_id, user_name=user_name)
+        first_name = message.from_user.first_name
+        db.add_user(user_id=user_id, user_name=user_name, first_name=first_name)
         get_time_attempts = db.get_time_until_next_attempt(user_id=user_id)
         if get_time_attempts == "Попытки уже доступны.":
             random_number = random.uniform(0, 5)
@@ -68,11 +70,12 @@ async def drink_kymyz(message: Message):
             volume = db.get_volume(user_id=user_id)
             volume = round(volume, 1)
             db.add_user_to_group(user_id=user_id, group_id=message.chat.id)
-            await message.answer(f"@{user_name}, сиз {random_volume} литр кымыз ичтиниз\n"
-                                 f"Сиз ушу менен биригип {volume} ичтиниз")
-            db.add_group(group_id=message.chat.id, group_name=message.chat.title)
+            await message.answer(f"<a href='tg://openmessage?user_id={user_id}'>{first_name}</a>, сиз {random_volume} литр кымыз ичтиниз\n"
+                                 f"Сиз ушу менен биригип {volume} ичтиниз", parse_mode='HTML')
+            db.add_group(group_id=message.chat.id, group_username=message.chat.username, group_name=message.chat.title)
         else:
-            await message.answer(f"@{user_name} Сизде аракет калбады\n Кийинки аракеттин жаралуусуна {get_time_attempts} калды")
+            await message.answer(f"<a href='tg://openmessage?user_id={user_id}'>{first_name}</a> Сизде аракет калбады\n"
+                                 f" Кийинки аракеттин жаралуусуна {get_time_attempts} калды", parse_mode='HTML')
 
     random_number = random.randint(1, 5)
     if random.randint(1, 5) == 1:
@@ -95,9 +98,11 @@ async def drink_kymyz(message: Message):
 async def my_statistic(message: Message):
     user_id = message.from_user.id
     user_name = message.from_user.username
+    first_name = message.from_user.first_name
     volume = db.get_volume(user_id=user_id)
     volume = round(volume, 1)
-    await message.answer(f"@{user_name}, Сиз {volume} литр кымыз ичтиниз")
+    await message.answer(f"<a href='tg://openmessage?user_id={user_id}>{first_name}</a>,"
+                         f" Сиз {volume} литр кымыз ичтиниз", parse_mode='HTML')
 
 
 @router.message(Command(commands='stats'))
@@ -299,9 +304,10 @@ async def get_rek_inline_text(message: Message, state: FSMContext):
 
 @router.message(Command(commands=['buy']))
 async def price_list(message: Message):
-
-    await message.answer(f"{message.from_user.username}, бул жерден сиз кошумча аракет сатып алсаз болот\n"
-                         f"Керектуу сумманы танданыз:", reply_markup=price_kb)
+    user_id = message.from_user.id
+    first_name = message.from_user.first_name
+    await message.answer(f"<a href='tg://openmessage?user_id={user_id}>{first_name}</a>, бул жерден сиз кошумча аракет сатып алсаз болот\n"
+                         f"Керектуу сумманы танданыз:", reply_markup=price_kb, parse_mode='HTML')
 
 
 @router.pre_checkout_query()
@@ -396,26 +402,26 @@ async def top_users_day(callback: CallbackQuery):
         user_statistic = "Группада оюнчу жок"
 
     # Отправляем сообщение с информацией о топ-10 пользователях
-    await callback.message.edit_text(f"🥛🔝🥛Глобалдуу эн мыкты оюнчулар:\n\n{user_statistic}",
+    await callback.message.edit_text(f"🥛🔝🥛Бир кундун ичиндеги глобалдуу эн мыкты оюнчулар:\n\n{user_statistic}",
                                      reply_markup=cancel_to_users_top)
 
 
 @router.callback_query(F.data == "groups_day_top")
 async def top_groups_day(callback: CallbackQuery):
-    top_users = db.get_global_day_top_users()
+    top_users = db.get_day_top_groups()
 
     # Формируем строку с перечислением пользователей
     if top_users:
         user_statistic = "\n".join([
-            f"{index + 1}. {user[1]} - {user[2]:.1f} литр"
-            for index, user in enumerate(top_users)
+            f"{index + 1}. <a href='tg://resolve?domain={group[1]}'>{group[2]}</a> - {group[3]:.1f} литр"
+            for index, group in enumerate(top_users)
         ])
     else:
         user_statistic = "Группада оюнчу жок"
 
     # Отправляем сообщение с информацией о топ-10 пользователях
-    await callback.message.edit_text(f"🥛🔝🥛Бир кундун ичинде глобалдуу эн мыкты оюнчулар:\n\n{user_statistic}",
-                                     reply_markup=cancel_to_group_top)
+    await callback.message.edit_text(f"🥛🔝🥛Бир кундун ичинде глобалдуу эн кымызды коп ичкен группалар:\n\n{user_statistic}",
+                                     reply_markup=cancel_to_group_top, parse_mode='HTML')
 
 
 @router.callback_query(F.data == "groups_all_time_top")
@@ -425,7 +431,7 @@ async def top_groups_all_top(callback: CallbackQuery):
     # Формируем строку с перечислением групп
     if top_groups:
         group_statistic = "\n".join([
-            f"{index + 1}.{group[1]} - {group[2]:.1f} литр"
+            f"{index + 1}.<a href='tg://resolve?domain={group[1]}'>{group[2]}</a> - {group[3]:.1f} литр"
             for index, group in enumerate(top_groups)
         ])
     else:
@@ -433,7 +439,7 @@ async def top_groups_all_top(callback: CallbackQuery):
 
     # Отправляем сообщение с информацией о топ-группах
     await callback.message.edit_text(f"🥛🔝🥛Глобалдуу эн кымызды коп ичкен группалар:\n\n{group_statistic}",
-                                     reply_markup=cancel_to_group_top)
+                                     reply_markup=cancel_to_group_top, parse_mode='HTML')
 
 
 @router.callback_query(F.data == "cancel")

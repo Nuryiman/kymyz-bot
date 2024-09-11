@@ -77,7 +77,7 @@ day_or_alltime_group_kb = InlineKeyboardMarkup(
     ]
 )
 
-cancel_to_group_top = InlineKeyboardMarkup(
+cancel_to_users_top = InlineKeyboardMarkup(
     inline_keyboard=[
         [
             InlineKeyboardButton(text="Артка", callback_data="cancel_to_stat")
@@ -85,7 +85,7 @@ cancel_to_group_top = InlineKeyboardMarkup(
     ]
 )
 
-cancel_to_users_top = InlineKeyboardMarkup(
+cancel_to_group_top = InlineKeyboardMarkup(
     inline_keyboard=[
         [
             InlineKeyboardButton(text="Артка", callback_data="cancel_to_stat_group")

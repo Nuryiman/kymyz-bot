@@ -1,7 +1,14 @@
 import sqlite3
 import datetime
-import time
-import threading
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from pytz import timezone
+
+# Задайте вашу временную зону
+tz = timezone('Asia/Bishkek')
+
+# Инициализация планировщика с указанием временной зоны
+scheduler = AsyncIOScheduler(timezone=tz)
 
 
 class DataBase:
@@ -15,7 +22,8 @@ class DataBase:
             """
             CREATE TABLE IF NOT EXISTS users (
                 user_id INTEGER UNIQUE,  
-                user_name TEXT UNIQUE,  
+                user_name TEXT UNIQUE DEFAULT Null,
+                first_name TEXT,  
                 volume REAL DEFAULT 0,
                 day_volume REAL DEFAULT 0,
                 attempts INTEGER DEFAULT 3,
@@ -29,6 +37,7 @@ class DataBase:
             """
             CREATE TABLE IF NOT EXISTS groups (
                 group_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                group_username,
                 group_name TEXT
             );
             """
@@ -61,24 +70,26 @@ class DataBase:
         )
 
         self.connection.commit()
+        self.scheduler = BackgroundScheduler()
+        self.start_reset_timer()
 
     # Функция добавления пользователя
-    def add_user(self, user_id: int, user_name: str) -> None:
+    def add_user(self, user_id: int, first_name: str,  user_name: str = None) -> None:
         try:
             self.cursor.execute(
-                'INSERT INTO users (user_id, user_name, volume, day_volume, attempts, last_attempt_time) VALUES (?, ?, ?, ?, ?, ?)',
-                (user_id, user_name, 0, 0, 3, None)
+                'INSERT INTO users (user_id, user_name, first_name, volume, day_volume, attempts, last_attempt_time) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                (user_id, user_name, first_name, 0, 0, 3, None)
             )
             self.connection.commit()
         except sqlite3.IntegrityError:
             pass
 
     # Функция добавления группы
-    def add_group(self, group_id: int, group_name: str) -> None:
+    def add_group(self, group_id: int, group_name: str, group_username: str = None) -> None:
         try:
             self.cursor.execute(
-                'INSERT INTO groups (group_id, group_name) VALUES (?, ?)',
-                (group_id, group_name)
+                'INSERT INTO groups (group_id, group_username, group_name) VALUES (?, ?, ?)',
+                (group_id, group_username, group_name)
             )
             self.connection.commit()
         except sqlite3.IntegrityError:
@@ -138,7 +149,7 @@ class DataBase:
     def get_group_users(self, group_id: int):
         self.cursor.execute(
             """
-            SELECT users.user_id, users.user_name, users.volume 
+            SELECT users.user_id, users.first_name, users.volume 
             FROM users 
             JOIN user_groups ON users.user_id = user_groups.user_id 
             WHERE user_groups.group_id = ?
@@ -152,7 +163,7 @@ class DataBase:
     def get_global_top_users(self):
         self.cursor.execute(
             """
-            SELECT user_id, user_name, volume 
+            SELECT user_id, first_name, volume 
             FROM users 
             ORDER BY volume DESC 
             LIMIT 10;
@@ -164,7 +175,7 @@ class DataBase:
     def get_global_day_top_users(self):
         self.cursor.execute(
             """
-            SELECT user_id, user_name, day_volume 
+            SELECT user_id, first_name, day_volume 
             FROM users 
             ORDER BY volume DESC 
             LIMIT 10;
@@ -176,7 +187,7 @@ class DataBase:
     def get_top_groups(self):
         self.cursor.execute(
             """
-            SELECT groups.group_id, groups.group_name, SUM(users.volume) AS total_volume
+            SELECT groups.group_id, groups.group_username, groups.group_name, SUM(users.volume) AS total_volume
             FROM users
             JOIN user_groups ON users.user_id = user_groups.user_id
             JOIN groups ON user_groups.group_id = groups.group_id
@@ -191,7 +202,7 @@ class DataBase:
     def get_day_top_groups(self):
         self.cursor.execute(
             """
-            SELECT groups.group_id, groups.group_name, SUM(users.day_volume) AS total_volume
+            SELECT groups.group_id, groups.group_username, groups.group_name, SUM(users.day_volume) AS total_volume
             FROM users
             JOIN user_groups ON users.user_id = user_groups.user_id
             JOIN groups ON user_groups.group_id = groups.group_id
@@ -250,7 +261,7 @@ class DataBase:
             if attempts == 0 and last_attempt_time is not None:
                 last_time = datetime.datetime.fromisoformat(last_attempt_time)
                 time_elapsed = (datetime.datetime.now() - last_time).total_seconds()
-                time_left = max(1800 - time_elapsed, 0)
+                time_left = max(3600 - time_elapsed, 0)
 
                 if time_left == 0:
                     self.cursor.execute(
@@ -313,23 +324,11 @@ class DataBase:
         self.connection.commit()
         print("Суточный объем сброшен для всех пользователей.")
 
-    # Запуск таймера для обнуления day_volume в 00:00
+    # Запуск планировщика для обнуления day_volume в 00:00
     def start_reset_timer(self):
-        def timer_task():
-            while True:
-                now = datetime.datetime.now()
-                # Проверяем, если сейчас время 00:00
-                if now.hour == 0 and now.minute == 0:
-                    self.reset_day_volume()
-                    # Спим 60 секунд, чтобы избежать повторного срабатывания в ту же минуту
-                    time.sleep(60)
-                # Спим 30 секунд перед следующей проверкой
-                time.sleep(30)
-
-        # Создание и запуск потока таймера
-        timer_thread = threading.Thread(target=timer_task)
-        timer_thread.daemon = True
-        timer_thread.start()
+        # Планируем задачу на каждый день в 00:00
+        self.scheduler.add_job(self.reset_day_volume, 'cron', hour=0, minute=0)
+        self.scheduler.start()
 
     def add_reklama(self, title, href, inline_title):
         self.cursor.execute(
