@@ -343,3 +343,9 @@ class DataBase:
         )
         result = self.cursor.fetchall()
         return result if result else None
+
+    def remove_reklam(self, title):
+        self.cursor.execute(
+            'DELETE FROM admin_reklams WHERE title= ?', (title,)
+        )
+        self.connection.commit()

@@ -1,5 +1,7 @@
 from aiogram.types import (InlineKeyboardButton,
-                           InlineKeyboardMarkup,)
+                           InlineKeyboardMarkup,
+                           ReplyKeyboardMarkup,
+                           KeyboardButton)
 
 price_kb = InlineKeyboardMarkup(
     inline_keyboard=[
@@ -103,3 +105,28 @@ def rek_kb(text: str, url: str):
         ]
     )
     return markup
+
+
+def all_reklams(*ads):
+    markup = ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                KeyboardButton(text=item[0]),
+            ] for item in ads
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=True,
+        input_field_placeholder="Выберите рекламу для удаления",
+        selective=True
+    )
+    return markup
+
+
+rm_reklam = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Удалить", callback_data="yes"),
+            InlineKeyboardButton(text="Не удалять", callback_data="no")
+        ]
+    ]
+)
