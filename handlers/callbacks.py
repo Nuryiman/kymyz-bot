@@ -1,37 +1,10 @@
 from aiogram import Router, F
-from aiogram.types import CallbackQuery, LabeledPrice
+from aiogram.types import CallbackQuery
 
 from handlers.handlers import db
 from keyboards import *
 
 call_router = Router()
-
-
-@call_router.callback_query(F.data == "10stars")
-async def pay_10_stars(callback: CallbackQuery):
-    await callback.message.answer_invoice(title="5 попыток",
-                                          description="5 аракет сатып алуу",
-                                          payload="10stars",
-                                          currency="XTR",
-                                          prices=[LabeledPrice(label="XTR", amount=2)])
-
-
-@call_router.callback_query(F.data == "20stars")
-async def pay_20_stars(callback: CallbackQuery):
-    await callback.message.answer_invoice(title="10 попыток",
-                                          description="10 аракет сатып алуу",
-                                          payload="20stars",
-                                          currency="XTR",
-                                          prices=[LabeledPrice(label="XTR", amount=20)])
-
-
-@call_router.callback_query(F.data == "25stars")
-async def pay_25_stars(callback: CallbackQuery):
-    await callback.message.answer_invoice(title="15 попыток",
-                                          description="15 аракет сатып алуу",
-                                          payload="25stars",
-                                          currency="XTR",
-                                          prices=[LabeledPrice(label="XTR", amount=25)])
 
 
 @call_router.callback_query(F.data.in_({"top_groups", "cancel_to_stat_group"}))
@@ -81,13 +54,15 @@ async def top_users_day(callback: CallbackQuery):
 
 @call_router.callback_query(F.data == "groups_day_top")
 async def top_groups_day(callback: CallbackQuery):
-    top_users = db.get_day_top_groups()
+    top_groups_list = db.get_day_top_groups()
 
     # Формируем строку с перечислением пользователей
     if top_users:
         user_statistic = "\n".join([
             f"{index + 1}. <a href='tg://resolve?domain={group[1]}'>{group[2]}</a> - {group[3]:.1f} литр"
-            for index, group in enumerate(top_users)
+            if group[1] is not None
+            else f"{index + 1}. {group[2]} - {group[3]:.1f} литр"
+            for index, group in enumerate(top_groups_list)
         ])
     else:
         user_statistic = "Группада оюнчу жок"
@@ -99,13 +74,15 @@ async def top_groups_day(callback: CallbackQuery):
 
 @call_router.callback_query(F.data == "groups_all_time_top")
 async def top_groups_all_top(callback: CallbackQuery):
-    top_groups = db.get_top_groups()
+    top_groups_list = db.get_top_groups()
 
     # Формируем строку с перечислением групп
     if top_groups:
         group_statistic = "\n".join([
-            f"{index + 1}.<a href='tg://resolve?domain={group[1]}'>{group[2]}</a> - {group[3]:.1f} литр"
-            for index, group in enumerate(top_groups)
+            f"{index + 1}. <a href='tg://resolve?domain={group[1]}'>{group[2]}</a> - {group[3]:.1f} литр"
+            if group[1] is not None
+            else f"{index + 1}. {group[2]} - {group[3]:.1f} литр"
+            for index, group in enumerate(top_groups_list)
         ])
     else:
         group_statistic = "Нет данных о группах."

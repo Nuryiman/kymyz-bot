@@ -202,17 +202,23 @@ async def get_rek_inline_text(message: Message, state: FSMContext):
 @admin_router.message(Command(commands="rm_reklama"))
 async def rm_reklama_command(message: Message, state: FSMContext):
     if message.from_user.id in admins:
-        all_reklams_tuple = db.get_all_reklams()
-        try:
-            all_reklams_title = [item[0] for item in all_reklams_tuple]
-        except TypeError:
-            await message.answer("Нет доступной рекламы для удаления.")
-        # Устанавливаем состояние ожидания выбора рекламы
-        await state.set_state(RemoveReklamState.waiting_rek_title)
+        if message.chat.title:
+            await message.answer("Эту команду можно использовать только в <a href='t.me/emchek_bot'>ЛС</a> бота",
+                                 parse_mode="HTML")
+        else:
+            all_reklams_tuple = db.get_all_reklams()
 
-        # Отправляем пользователю список доступных реклам для удаления
-        await message.answer("Выберите рекламу, которую хотите удалить:",
-                             reply_markup=all_reklams(all_reklams_title))
+            if all_reklams_tuple:
+                all_reklams_title = [item[0] for item in all_reklams_tuple]
+                # Устанавливаем состояние ожидания выбора рекламы
+                await state.set_state(RemoveReklamState.waiting_rek_title)
+
+                # Отправляем пользователю список доступных реклам для удаления
+                await message.answer("Выберите рекламу, которую хотите удалить:",
+                                     reply_markup=all_reklams(*all_reklams_title))
+            else:
+                await message.answer("Нет доступной рекламы для удаления.")
+
     else:
         await message.answer("У вас нет прав")
 
@@ -230,6 +236,9 @@ async def rm_state(message: Message, state: FSMContext):
         # Запрашиваем подтверждение на удаление
         await message.answer("Подтвердите удаление", reply_markup=rm_reklam)
         await state.set_state(RemoveReklamState.waiting_confirmation)
+        msg = await message.answer("Ок",
+                                          reply_markup=ReplyKeyboardRemove())
+        await bot.delete_message(message.chat.id, msg.message_id)
     else:
         await message.answer("Выберите существующую рекламу.")
 

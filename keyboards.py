@@ -108,12 +108,12 @@ def rek_kb(text: str, url: str):
 
 
 def all_reklams(*ads):
+    buttons = [
+        [KeyboardButton(text=item)] for item in ads
+    ]
+
     markup = ReplyKeyboardMarkup(
-        keyboard=[
-            [
-                KeyboardButton(text=item[0]),
-            ] for item in ads
-        ],
+        keyboard=buttons,
         resize_keyboard=True,
         one_time_keyboard=True,
         input_field_placeholder="Выберите рекламу для удаления",

@@ -10,13 +10,16 @@ stat_router = Router()
 
 @stat_router.message(Command(commands=['my_stat']))
 async def my_statistic(message: Message):
-    user_id = message.from_user.id
-    user_name = message.from_user.username
-    first_name = message.from_user.first_name
-    volume = db.get_volume(user_id=user_id)
-    volume = round(volume, 1)
-    await message.answer(f"<a href='tg://openmessage?user_id={user_id}'>{first_name}</a>,"
-                         f" Сиз {volume} литр кымыз ичтиниз", parse_mode='HTML')
+    try:
+        user_id = message.from_user.id
+        first_name = message.from_user.first_name
+        volume = db.get_volume(user_id=user_id)
+        volume = round(volume, 1)
+        await message.answer(f"<a href='tg://openmessage?user_id={user_id}'>{first_name}</a>,"
+                             f" Сиз {volume} литр кымыз ичтиниз", parse_mode='HTML')
+    except TypeError:
+        await message.answer("Сиз бир дагы жолу кымыз иче элексиз\n\n"
+                             "/kymyz командасын жазып, азыр иче баштаныз")
 
 
 @stat_router.message(Command(commands='stats'))
