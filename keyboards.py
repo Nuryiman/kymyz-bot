@@ -28,7 +28,7 @@ stat_kb = InlineKeyboardMarkup(
     ]
 )
 
-bot_username = "emchek_bot"
+bot_username = "kymyz_slx_bot"
 
 add_bot_kb = InlineKeyboardMarkup(
     inline_keyboard=[

@@ -12,7 +12,7 @@ pay_router = Router()
 async def price_list(message: Message):
     user_id = message.from_user.id
     first_name = message.from_user.first_name
-    await message.answer(f"<a href='tg://openmessage?user_id={user_id}'>{first_name}</a>, бул жерден сиз кошумча аракет сатып алсаз болот\n"
+    await message.answer(f"<a href='tg://openmessage?user_id={user_id}'>{first_name}</a>, бул жерден сиз кошумча аракет сатып алсаныз болот\n"
                          f"Керектуу сумманы танданыз:", reply_markup=price_kb, parse_mode='HTML')
 
 
@@ -42,7 +42,7 @@ async def pay_10_stars(callback: CallbackQuery):
                                           description="5 аракет сатып алуу",
                                           payload="10stars",
                                           currency="XTR",
-                                          prices=[LabeledPrice(label="XTR", amount=2)])
+                                          prices=[LabeledPrice(label="XTR", amount=1)])
 
 
 @pay_router.callback_query(F.data == "20stars")

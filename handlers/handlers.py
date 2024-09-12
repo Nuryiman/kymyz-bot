@@ -13,7 +13,7 @@ bot = Bot(MAIN_API_TOKEN)
 router = Router()
 db = DataBase(db_file="../users.sqlite")
 admins = [5299011150, 7065054223]
-BOT_ID = 7326435505
+BOT_ID = 7392413904
 LOID = 7065054223
 
 
