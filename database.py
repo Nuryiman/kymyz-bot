@@ -1,14 +1,6 @@
 import sqlite3
 import datetime
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from pytz import timezone
-
-# Задайте вашу временную зону
-tz = timezone('Asia/Bishkek')
-
-# Инициализация планировщика с указанием временной зоны
-scheduler = AsyncIOScheduler(timezone=tz)
+import threading
 
 
 class DataBase:
@@ -70,7 +62,6 @@ class DataBase:
         )
 
         self.connection.commit()
-        self.scheduler = BackgroundScheduler()
         self.start_reset_timer()
 
     # Функция добавления пользователя
@@ -182,6 +173,7 @@ class DataBase:
             """
         )
         result = self.cursor.fetchall()
+
         return result if result else []
 
     def get_top_groups(self):
@@ -318,17 +310,21 @@ class DataBase:
         return result if result else None
 
     # Функция обнуления day_volume
+    def start_reset_timer(self):
+        self.reset_day_volume()  # Сброс значения сразу при запуске
+        self.schedule_next_reset()
+
+    def schedule_next_reset(self):
+        # Запускаем таймер, чтобы вызвать функцию через 24 часа (86400 секунд)
+        threading.Timer(86400, self.reset_day_volume).start()
+
     def reset_day_volume(self):
         """Сбрасывает колонку day_volume для всех пользователей."""
         self.cursor.execute('UPDATE users SET day_volume = 0')
         self.connection.commit()
         print("Суточный объем сброшен для всех пользователей.")
-
-    # Запуск планировщика для обнуления day_volume в 00:00
-    def start_reset_timer(self):
-        # Планируем задачу на каждый день в 00:00
-        self.scheduler.add_job(self.reset_day_volume, 'cron', hour=0, minute=0)
-        self.scheduler.start()
+        # Планируем следующий сброс
+        self.schedule_next_reset()
 
     def add_reklama(self, title, href, inline_title):
         self.cursor.execute(
