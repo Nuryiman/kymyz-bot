@@ -19,7 +19,8 @@ class DataBase:
                 volume REAL DEFAULT 0,
                 day_volume REAL DEFAULT 0,
                 attempts INTEGER DEFAULT 3,
-                last_attempt_time TEXT
+                last_attempt_time TEXT,
+                bot_stop_protection BOOLEAN DEFAULT 1
             );
             """
         )
@@ -61,6 +62,19 @@ class DataBase:
             """
         )
 
+        # Создания промежуточной таблицы для бот стоп
+        self.cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users_bot_stop (
+            prohibiting_user_id INTEGER,
+            prohibited_user_id INTEGER,
+            PRIMARY KEY (prohibiting_user_id, prohibited_user_id),
+            FOREIGN KEY (prohibiting_user_id) REFERENCES users (user_id) ON DELETE CASCADE,
+            FOREIGN KEY (prohibited_user_id) REFERENCES users (user_id) ON DELETE CASCADE
+            );
+            """
+        )
+
         self.connection.commit()
         self.start_reset_timer()
 
@@ -68,8 +82,8 @@ class DataBase:
     def add_user(self, user_id: int, first_name: str,  user_name: str = None) -> None:
         try:
             self.cursor.execute(
-                'INSERT INTO users (user_id, user_name, first_name, volume, day_volume, attempts, last_attempt_time) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                (user_id, user_name, first_name, 0, 0, 3, None)
+                'INSERT INTO users (user_id, user_name, first_name, volume, day_volume, attempts, last_attempt_time, bot_stop_protection) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                (user_id, user_name, first_name, 0, 0, 3, None, 0)
             )
             self.connection.commit()
         except sqlite3.IntegrityError:
@@ -168,7 +182,7 @@ class DataBase:
             """
             SELECT user_id, first_name, day_volume 
             FROM users 
-            ORDER BY volume DESC 
+            ORDER BY day_volume DESC 
             LIMIT 10;
             """
         )
@@ -345,3 +359,65 @@ class DataBase:
             'DELETE FROM admin_reklams WHERE title= ?', (title,)
         )
         self.connection.commit()
+
+    def add_or_rm_bot_stop(self, prohibiting_user_id,
+                                 prohibiting_username,
+                                 prohibiting_user_first_name,
+                                 prohibited_user_id,
+                                 prohibited_username,
+                                 prohibited_user_first_name
+                           ):
+        self.add_user(user_id=prohibiting_user_id,
+                      user_name=prohibiting_username,
+                      first_name=prohibiting_user_first_name)
+
+        self.add_user(user_id=prohibited_user_id,
+                      user_name=prohibited_username,
+                      first_name=prohibited_user_first_name)
+
+        self.cursor.execute(
+            'SELECT bot_stop_protection FROM users WHERE user_id = ?', (prohibited_user_id,)
+        )
+        is_protective = self.cursor.fetchone()
+
+        self.get_reply_permissions(prohibiting_user_id, prohibited_user_id)
+        if is_protective[0] == 0:
+            try:
+                self.cursor.execute(
+                    'INSERT INTO users_bot_stop (prohibiting_user_id, prohibited_user_id) VALUES (?, ?)',
+                    (prohibiting_user_id, prohibited_user_id)
+                )
+                self.connection.commit()
+                print("Бот стоп добавлен")
+                return "Бот стоп добавлен"
+
+            except sqlite3.IntegrityError:
+                self.cursor.execute(
+                    'DELETE FROM users_bot_stop WHERE prohibiting_user_id = ? AND prohibited_user_id = ?',
+                    (prohibiting_user_id, prohibited_user_id)
+                )
+                self.connection.commit()
+                return "Бот стоп убран"
+
+    def set_protection(self, user_id):
+        self.cursor.execute(
+            'UPDATE users SET bot_stop_protection = ? WHERE user_id = ?', (True, user_id)
+        )
+        self.cursor.execute(
+            'DELETE FROM users_bot_stop WHERE prohibited_user_id = ?', (user_id,)
+        )
+        self.connection.commit()
+        return True
+
+    def get_reply_permissions(self, user_id, reply_user_id):
+        self.cursor.execute(
+            'SELECT * FROM users_bot_stop WHERE prohibiting_user_id = ? AND prohibited_user_id = ?',
+            (reply_user_id, user_id)
+        )
+        result = self.cursor.fetchone()
+        print(result)
+        if result is None:
+            return "разрешено"
+
+        elif result[1] == user_id and result[0] == reply_user_id:
+            return "запрещено"

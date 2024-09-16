@@ -11,7 +11,7 @@ from keyboards import *
 
 bot = Bot(MAIN_API_TOKEN)
 router = Router()
-db = DataBase(db_file="../users.sqlite")
+db = DataBase(db_file="users.sqlite")
 admins = [5299011150, 7065054223]
 BOT_ID = 7392413904
 LOID = 7065054223
@@ -98,7 +98,7 @@ async def drink_kymyz(message: Message):
 
 @router.message(F.text.lower() == "ичируу")
 async def rp(message: Message):
-    if message.chat.title == None:
+    if message.chat.title is None:
         await message.answer('Салам! Мен кымыз бот. Башка оюнчулар менен биригип кымыз ичип жарыш.\n🥛🥛🥛\n\n'
                      'Кымыз ичуу учун /kymyz командасын жаз\n\n'
                      'Жардам - /help', reply_markup=add_bot_kb)
@@ -115,6 +115,7 @@ async def rp(message: Message):
         else:
             await message.answer("Бул команда бироого жооп бергенде гана иштейт")
 
+
 @router.message(Command(commands="help"))
 async def help_command(message: Message):
     await message.answer("""
@@ -130,3 +131,36 @@ async def help_command(message: Message):
 /help - бот жардам
 Ичируу - кымыз менен сыйлоо
     """)
+
+
+@router.message(F.reply_to_message)
+async def bot_stop(message: Message):
+    if message.text.lower() == "бот стоп":
+        user_username = message.from_user.username
+        user_id = message.from_user.id
+        user_first_name = message.from_user.first_name
+        reply_username = message.reply_to_message.from_user.username
+        reply_id = message.reply_to_message.from_user.id
+        reply_first_name = message.reply_to_message.from_user.first_name
+        successful_bot_stop = db.add_or_rm_bot_stop(prohibiting_user_id=user_id,
+                                                    prohibiting_username=user_username,
+                                                    prohibited_user_first_name=user_first_name,
+                                                    prohibited_username=reply_username,
+                                                    prohibited_user_id=reply_id,
+                                                    prohibiting_user_first_name=reply_first_name)
+        if successful_bot_stop == "Бот стоп добавлен":
+            await message.answer(f"{reply_first_name} Сизге {user_first_name} жооп берууго тыйуу салды")
+        elif successful_bot_stop == "Бот стоп убран":
+            await message.answer(f"{reply_first_name} Сизге {user_first_name} жооп берууго уруксат берди")
+        else:
+            await message.answer(f"{reply_first_name} Бот стоптон коргоо бар")
+
+    else:
+        user_id = message.from_user.id
+        reply_id = message.reply_to_message.from_user.id
+        is_allowed = db.get_reply_permissions(user_id=user_id, reply_user_id=reply_id)
+        if is_allowed == "запрещено":
+            try:
+                await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
+            except Exception:
+                pass

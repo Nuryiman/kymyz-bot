@@ -1,7 +1,8 @@
 from aiogram.types import (InlineKeyboardButton,
                            InlineKeyboardMarkup,
                            ReplyKeyboardMarkup,
-                           KeyboardButton)
+                           KeyboardButton,)
+from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
 price_kb = InlineKeyboardMarkup(
     inline_keyboard=[
@@ -13,6 +14,9 @@ price_kb = InlineKeyboardMarkup(
         ],
         [
             InlineKeyboardButton(text="15 аракет - 25⭐️", callback_data='25stars'),
+        ],
+        [
+            InlineKeyboardButton(text="Бот стоптон коргоо🛡 - 30⭐️", callback_data='bot_stop_protection'),
         ],
     ]
 )
@@ -108,18 +112,12 @@ def rek_kb(text: str, url: str):
 
 
 def all_reklams(*ads):
-    buttons = [
-        [KeyboardButton(text=item)] for item in ads
-    ]
 
-    markup = ReplyKeyboardMarkup(
-        keyboard=buttons,
-        resize_keyboard=True,
-        one_time_keyboard=True,
-        input_field_placeholder="Выберите рекламу для удаления",
-        selective=True
-    )
-    return markup
+    builder = ReplyKeyboardBuilder()
+    [builder.button(text=item) for item in ads]
+    builder.adjust(2)
+    builder.button(text="Не удалять")
+    return builder.as_markup(resize_keyboard=True)
 
 
 rm_reklam = InlineKeyboardMarkup(

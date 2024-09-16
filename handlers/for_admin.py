@@ -77,7 +77,7 @@ async def start_ad(message: Message, state: FSMContext):
         else:
             await message.answer("У вас нет прав")
     else:
-        await message.answer("Эту команду можно использовать только в <a href='t.me/emchek_bot'>ЛС</a> бота", parse_mode="HTML")
+        await message.answer("Эту команду можно использовать только в <a href='tg://resolve?domain=kymyz_slx_bot'>ЛС</a> бота", parse_mode="HTML")
 
 
 @admin_router.message(AdStates.waiting_for_ad)
@@ -137,7 +137,7 @@ async def add_reklama(message: Message, state: FSMContext):
         else:
             await message.answer("У вас нет прав")
     else:
-        await message.answer("Эту команду можно использовать только в <a href='t.me/emchek_bot'>ЛС</a> бота",
+        await message.answer("Эту команду можно использовать только в <a href='tg://resolve?domain=kymyz_slx_bot'>ЛС</a> бота",
                              parse_mode="HTML")
 
 
@@ -203,7 +203,7 @@ async def get_rek_inline_text(message: Message, state: FSMContext):
 async def rm_reklama_command(message: Message, state: FSMContext):
     if message.from_user.id in admins:
         if message.chat.title:
-            await message.answer("Эту команду можно использовать только в <a href='t.me/emchek_bot'>ЛС</a> бота",
+            await message.answer("Эту команду можно использовать только в <a href='tg://resolve?domain=kymyz_slx_bot'>ЛС</a> бота",
                                  parse_mode="HTML")
         else:
             all_reklams_tuple = db.get_all_reklams()
@@ -228,8 +228,11 @@ async def rm_reklama_command(message: Message, state: FSMContext):
 async def rm_state(message: Message, state: FSMContext):
     all_reklams_tuple = db.get_all_reklams()
     all_reklams_title = [item[0] for item in all_reklams_tuple]
+    if message.text.lower() == "не удалять":
+        await state.clear()
+        await message.answer("Удаление отменено", reply_markup=ReplyKeyboardRemove())
 
-    if message.text in all_reklams_title:
+    elif message.text in all_reklams_title:
         # Сохраняем выбранную рекламу в состояние
         await state.update_data(selected_ad=message.text)
 

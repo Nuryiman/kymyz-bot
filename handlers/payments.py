@@ -16,6 +16,42 @@ async def price_list(message: Message):
                          f"Керектуу сумманы танданыз:", reply_markup=price_kb, parse_mode='HTML')
 
 
+@pay_router.callback_query(F.data == "10stars")
+async def pay_10_stars(callback: CallbackQuery):
+    await callback.message.answer_invoice(title="5 аракет",
+                                          description="5 аракет сатып алуу",
+                                          payload="10stars",
+                                          currency="XTR",
+                                          prices=[LabeledPrice(label="XTR", amount=10)])
+
+
+@pay_router.callback_query(F.data == "20stars")
+async def pay_20_stars(callback: CallbackQuery):
+    await callback.message.answer_invoice(title="10 аракет",
+                                          description="10 аракет сатып алуу",
+                                          payload="20stars",
+                                          currency="XTR",
+                                          prices=[LabeledPrice(label="XTR", amount=20)])
+
+
+@pay_router.callback_query(F.data == "25stars")
+async def pay_25_stars(callback: CallbackQuery):
+    await callback.message.answer_invoice(title="15 аракет",
+                                          description="15 аракет сатып алуу",
+                                          payload="25stars",
+                                          currency="XTR",
+                                          prices=[LabeledPrice(label="XTR", amount=25)])
+
+
+@pay_router.callback_query(F.data == "bot_stop_protection")
+async def pay_bot_stop_protection(callback: CallbackQuery):
+    await callback.message.answer_invoice(title="Бот стоптон коргоо",
+                                          description="Бот стоптон коргоону сатып алуу",
+                                          payload="bot_stop_protection",
+                                          currency="XTR",
+                                          prices=[LabeledPrice(label="XTR", amount=30)])
+
+
 @pay_router.pre_checkout_query()
 async def pre_checkout_query(query: PreCheckoutQuery):
     await query.answer(True)
@@ -35,29 +71,7 @@ async def successful_payment(message: Message):
         db.add_attempts(message.from_user.id, 15)
         await message.answer("Оплата успешна")
 
+    elif message.successful_payment.invoice_payload == "bot_stop_protection":
+        db.set_protection(message.from_user.id)
+        await message.answer("Оплата успешна")
 
-@pay_router.callback_query(F.data == "10stars")
-async def pay_10_stars(callback: CallbackQuery):
-    await callback.message.answer_invoice(title="5 аракет",
-                                          description="5 аракет сатып алуу",
-                                          payload="10stars",
-                                          currency="XTR",
-                                          prices=[LabeledPrice(label="XTR", amount=1)])
-
-
-@pay_router.callback_query(F.data == "20stars")
-async def pay_20_stars(callback: CallbackQuery):
-    await callback.message.answer_invoice(title="10 аракет",
-                                          description="10 аракет сатып алуу",
-                                          payload="20stars",
-                                          currency="XTR",
-                                          prices=[LabeledPrice(label="XTR", amount=20)])
-
-
-@pay_router.callback_query(F.data == "25stars")
-async def pay_25_stars(callback: CallbackQuery):
-    await callback.message.answer_invoice(title="15 аракет",
-                                          description="15 аракет сатып алуу",
-                                          payload="25stars",
-                                          currency="XTR",
-                                          prices=[LabeledPrice(label="XTR", amount=25)])
