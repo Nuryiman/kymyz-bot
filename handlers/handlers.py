@@ -134,7 +134,7 @@ async def help_command(message: Message):
 
 
 @router.message(F.reply_to_message)
-async def bot_stop(message: Message):
+async def add_bot_stop(message: Message):
     if message.text.lower() == "бот стоп":
         user_username = message.from_user.username
         user_id = message.from_user.id

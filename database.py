@@ -380,23 +380,34 @@ class DataBase:
         )
         is_protective = self.cursor.fetchone()
 
-        self.get_reply_permissions(prohibiting_user_id, prohibited_user_id)
+        is_bot_stop = self.get_reply_permissions(prohibiting_user_id, prohibited_user_id)
         if is_protective[0] == 0:
-            try:
-                self.cursor.execute(
-                    'INSERT INTO users_bot_stop (prohibiting_user_id, prohibited_user_id) VALUES (?, ?)',
-                    (prohibiting_user_id, prohibited_user_id)
-                )
-                self.connection.commit()
-                print("Бот стоп добавлен")
-                return "Бот стоп добавлен"
+            if is_bot_stop == "разрешено":
+                try:
+                    self.cursor.execute(
+                        'INSERT INTO users_bot_stop (prohibiting_user_id, prohibited_user_id) VALUES (?, ?)',
+                        (prohibiting_user_id, prohibited_user_id)
+                    )
+                    self.connection.commit()
+                    print("Бот стоп добавлен")
+                    return "Бот стоп добавлен"
 
-            except sqlite3.IntegrityError:
+                except sqlite3.IntegrityError:
+                    self.cursor.execute(
+                        'DELETE FROM users_bot_stop WHERE prohibiting_user_id = ? AND prohibited_user_id = ?',
+                        (prohibiting_user_id, prohibited_user_id)
+                    )
+                    self.connection.commit()
+                    print("Бот стоп убран")
+                    return "Бот стоп убран"
+
+            else:
                 self.cursor.execute(
                     'DELETE FROM users_bot_stop WHERE prohibiting_user_id = ? AND prohibited_user_id = ?',
                     (prohibiting_user_id, prohibited_user_id)
                 )
                 self.connection.commit()
+                print("Бот стоп убран")
                 return "Бот стоп убран"
 
     def set_protection(self, user_id):
@@ -412,12 +423,12 @@ class DataBase:
     def get_reply_permissions(self, user_id, reply_user_id):
         self.cursor.execute(
             'SELECT * FROM users_bot_stop WHERE prohibiting_user_id = ? AND prohibited_user_id = ?',
-            (reply_user_id, user_id)
+            (user_id, reply_user_id)
         )
         result = self.cursor.fetchone()
         print(result)
         if result is None:
             return "разрешено"
 
-        elif result[1] == user_id and result[0] == reply_user_id:
+        elif result[0] == user_id and result[1] == reply_user_id:
             return "запрещено"
