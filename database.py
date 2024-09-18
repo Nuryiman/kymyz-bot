@@ -409,6 +409,8 @@ class DataBase:
                 self.connection.commit()
                 print("Бот стоп убран")
                 return "Бот стоп убран"
+        else:
+            return "защита"
 
     def set_protection(self, user_id):
         self.cursor.execute(
@@ -423,12 +425,12 @@ class DataBase:
     def get_reply_permissions(self, user_id, reply_user_id):
         self.cursor.execute(
             'SELECT * FROM users_bot_stop WHERE prohibiting_user_id = ? AND prohibited_user_id = ?',
-            (user_id, reply_user_id)
+            (reply_user_id, user_id)
         )
         result = self.cursor.fetchone()
         print(result)
         if result is None:
             return "разрешено"
 
-        elif result[0] == user_id and result[1] == reply_user_id:
+        elif result[1] == user_id and result[0] == reply_user_id:
             return "запрещено"

@@ -80,7 +80,6 @@ async def drink_kymyz(message: Message):
                                  f" Кийинки аракеттин жаралуусуна {get_time_attempts} калды\n\n"
                                  f"Кошумча аракеттер - /buy", parse_mode='HTML')
 
-    random_number = random.randint(1, 5)
     if random.randint(1, 5) == 1:
         all_reklams = db.get_all_reklams()
         if all_reklams:
@@ -135,25 +134,27 @@ async def help_command(message: Message):
 
 @router.message(F.reply_to_message)
 async def add_bot_stop(message: Message):
-    if message.text.lower() == "бот стоп":
-        user_username = message.from_user.username
-        user_id = message.from_user.id
-        user_first_name = message.from_user.first_name
-        reply_username = message.reply_to_message.from_user.username
-        reply_id = message.reply_to_message.from_user.id
-        reply_first_name = message.reply_to_message.from_user.first_name
-        successful_bot_stop = db.add_or_rm_bot_stop(prohibiting_user_id=user_id,
-                                                    prohibiting_username=user_username,
-                                                    prohibited_user_first_name=user_first_name,
-                                                    prohibited_username=reply_username,
-                                                    prohibited_user_id=reply_id,
-                                                    prohibiting_user_first_name=reply_first_name)
-        if successful_bot_stop == "Бот стоп добавлен":
-            await message.answer(f"{reply_first_name} Сизге {user_first_name} жооп берууго тыйуу салды")
-        elif successful_bot_stop == "Бот стоп убран":
-            await message.answer(f"{reply_first_name} Сизге {user_first_name} жооп берууго уруксат берди")
-        else:
-            await message.answer(f"{reply_first_name} Бот стоптон коргоо бар")
+    if message.text is not None:
+        original_text = message.text.lower()
+        if original_text == "бот стоп":
+            user_username = message.from_user.username
+            user_id = message.from_user.id
+            user_first_name = message.from_user.first_name
+            reply_username = message.reply_to_message.from_user.username
+            reply_id = message.reply_to_message.from_user.id
+            reply_first_name = message.reply_to_message.from_user.first_name
+            successful_bot_stop = db.add_or_rm_bot_stop(prohibiting_user_id=user_id,
+                                                        prohibiting_username=user_username,
+                                                        prohibiting_user_first_name=user_first_name,
+                                                        prohibited_username=reply_username,
+                                                        prohibited_user_id=reply_id,
+                                                        prohibited_user_first_name=reply_first_name)
+            if successful_bot_stop == "Бот стоп добавлен":
+                await message.answer(f"{reply_first_name} Сизге {user_first_name} жооп берууго тыйуу салды")
+            elif successful_bot_stop == "Бот стоп убран":
+                await message.answer(f"{reply_first_name} Сизге {user_first_name} жооп берууго уруксат берди")
+            else:
+                await message.answer(f"{reply_first_name} Бот стоптон коргоо бар")
 
     else:
         user_id = message.from_user.id
