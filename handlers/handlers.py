@@ -156,12 +156,12 @@ async def add_bot_stop(message: Message):
             else:
                 await message.answer(f"{reply_first_name} Бот стоптон коргоо бар")
 
-    else:
-        user_id = message.from_user.id
-        reply_id = message.reply_to_message.from_user.id
-        is_allowed = db.get_reply_permissions(user_id=user_id, reply_user_id=reply_id)
-        if is_allowed == "запрещено":
-            try:
-                await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
-            except Exception:
-                pass
+    user_id = message.from_user.id
+    reply_id = message.reply_to_message.from_user.id
+    is_allowed = db.get_reply_permissions(user_id=user_id, reply_user_id=reply_id)
+    if is_allowed == "запрещено":
+        try:
+            await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
+        except Exception:
+            pass
+

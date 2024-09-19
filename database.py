@@ -389,7 +389,6 @@ class DataBase:
                         (prohibiting_user_id, prohibited_user_id)
                     )
                     self.connection.commit()
-                    print("Бот стоп добавлен")
                     return "Бот стоп добавлен"
 
                 except sqlite3.IntegrityError:
@@ -407,7 +406,6 @@ class DataBase:
                     (prohibiting_user_id, prohibited_user_id)
                 )
                 self.connection.commit()
-                print("Бот стоп убран")
                 return "Бот стоп убран"
         else:
             return "защита"
