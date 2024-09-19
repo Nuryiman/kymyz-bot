@@ -336,7 +336,6 @@ class DataBase:
         """Сбрасывает колонку day_volume для всех пользователей."""
         self.cursor.execute('UPDATE users SET day_volume = 0')
         self.connection.commit()
-        print("Суточный объем сброшен для всех пользователей.")
         # Планируем следующий сброс
         self.schedule_next_reset()
 
@@ -397,7 +396,6 @@ class DataBase:
                         (prohibiting_user_id, prohibited_user_id)
                     )
                     self.connection.commit()
-                    print("Бот стоп убран")
                     return "Бот стоп убран"
 
             else:
