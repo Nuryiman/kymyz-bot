@@ -426,7 +426,6 @@ class DataBase:
             (reply_user_id, user_id)
         )
         result = self.cursor.fetchone()
-        print(result)
         if result is None:
             return "разрешено"
 
